@@ -11,7 +11,7 @@ class RPSolver(qw.QMainWindow):
         super().__init__()
         self.initUI()
         # Window Data
-        self.setFixedSize(700, 600)
+        self.setFixedSize(600, 600)
         self.center()
         self.setWindowTitle("Rook Polynomial Solver")
         self.setWindowIcon(qg.QIcon("images/rook_icon.png"))
@@ -39,22 +39,27 @@ class RPSolver(qw.QMainWindow):
         colLabel = qw.QLabel("Number of columns:", self)
 
         # Buttons
+        solveBtn = qw.QPushButton("Solve")
+
 
         # Comboboxes
         xCombo = qw.QComboBox(self)
         xCombo.label = "xCombo"
         xCombo.addItems(str(n) for n in range(1, 11))
+        xCombo.setCurrentIndex(7)  # Default to 8 for 8x8 board
         yCombo = qw.QComboBox(self)
         yCombo.label = "yCombo"
         yCombo.addItems(str(n) for n in range(1, 11))
+        yCombo.setCurrentIndex(7)  # Default to 8 for 8x8 board
 
         xCombo.activated[str].connect(self.onActivated)
         yCombo.activated[str].connect(self.onActivated)
 
-        # Grid Layout
+        # # Grid Layout
         widget = qw.QWidget()
         grid = qw.QGridLayout()
         grid.setSpacing(10)
+
 
         widget.setLayout(grid)
         grid.addWidget(rowLabel, 1, 0)
@@ -62,8 +67,12 @@ class RPSolver(qw.QMainWindow):
         grid.addWidget(yCombo, 1, 1)
         grid.addWidget(xCombo, 2, 1)
         grid.addWidget(self.board, 1, 2, 10, 10)
+        grid.setAlignment(self.board, qc.Qt.AlignTop | qc.Qt.AlignLeft)
+
 
         self.setCentralWidget(widget)
+
+        # rowLabel.move(10, 25)
 
         # Status Bar
         self.statusBar().showMessage("Ready")
@@ -115,8 +124,9 @@ class Board(qw.QGraphicsView):
         self.initUI()
 
     def initUI(self):
-        self.x = 1
-        self.y = 1
+        # Default to 8x8 board
+        self.x = 8
+        self.y = 8
 
         sqrDim = 40
         color = self.palette().color(qg.QPalette.Background)
@@ -150,28 +160,76 @@ class Board(qw.QGraphicsView):
 
         for i in range(self.x):
             for j in range(self.y):
-                square = Square(j, i)
+                square = Square(i * 40, j * 40)
+                square.setFlag(qw.QGraphicsItem.ItemIsSelectable, True)
+                square.setAcceptHoverEvents(True)
                 self.scene.addItem(square)
 
 
 class Square(qw.QGraphicsItem):
-    def __init__(self, row, col):
+    def __init__(self, x, y):
         super(Square, self).__init__()
-        self.row = row
-        self.col = col
-        self.rect = qc.QRectF(0, 0, 40, 40)
+        self.pen = qg.QPen()
+        self.pen.setColor(qg.QColor(0x000000))
+
+        self.brush = qg.QBrush()
+
+        self.x = x
+        self.y = y
+        self.bad = False
+        self.pressed = False
+
+        self.rect = qc.QRectF(self.x, self.y, 40, 40)
+
+        self.setFlag(qw.QGraphicsItem.ItemIsSelectable, True)
+        self.setAcceptHoverEvents(True)
+
+    # def hoverEnterEvent(self, event):
+    #     print("hello")
+    #     qw.QGraphicsItem.hoverEnterEvent(self, event)
+    #
+    # def hoverLeaveEvent(self, event):
+    #     print("goodbye")
+    #     qw.QGraphicsItem.hoverLeaveEvent(self, event)
+
+    def mousePressEvent(self, event):
+        # select object
+        self.bad = self.bad ^ True  # toggle bad cell on click
+        self.pressed = True
+        qw.QGraphicsItem.mousePressEvent(self, event)
+
+    def mouseReleaseEvent(self, event):
+        self.pressed = False
+        qw.QGraphicsItem.mousePressEvent(self, event)
 
     def boundingRect(self):
         return self.rect
 
     def paint(self, painter, option, widget):
         painter.setPen(qc.Qt.NoPen)
-        if (self.row + self.col) & 1:
+        if option.state & qw.QStyle.State_MouseOver:
+            pen = qg.QPen(qc.Qt.red, 2, qc.Qt.DashLine, qc.Qt.RoundCap)
+            painter.setPen(pen)
+            painter.setBrush(qg.QBrush(qc.Qt.gray, qc.Qt.DiagCrossPattern))
+
+            painter.drawRect(self.x, self.y, 39, 39)
+            painter.drawLine(self.x, self.y, self.x + 40, self.y + 40)
+            painter.drawLine(self.x + 40, self.y, self.x, self.y + 40)
+            return
+
+        if self.bad:
+            badBrush = qg.QBrush(qc.Qt.gray, qc.Qt.DiagCrossPattern)
+            painter.setBrush(badBrush)
+            painter.drawRect(self.x, self.y, 40, 40)
+            return
+
+
+        if (self.x//40 + self.y//40) & 1:  # Creates alternating white/black
             painter.setBrush(qg.QColor(0x000000))
-            painter.drawRect(self.col * 40, self.row * 40, 40, 40)
+            painter.drawRect(self.x, self.y, 40, 40)
         else:
             painter.setBrush(qg.QColor(0xffffff))
-            painter.drawRect(self.col * 40, self.row * 40, 40, 40)
+            painter.drawRect(self.x, self.y, 40, 40)
 
 
 if __name__ == "__main__":
