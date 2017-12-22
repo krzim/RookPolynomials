@@ -11,8 +11,8 @@ class MathTextLabel(QtWidgets.QWidget):
         l = QtWidgets.QVBoxLayout(self)
         l.setContentsMargins(0, 0, 0, 0)
 
+
         r, g, b, a = self.palette().window().color().getRgbF()
-        print(r, g, b, a)
 
         self._figure = Figure(edgecolor=(r, g, b), facecolor=(r, g, b))
         self._canvas = FigureCanvas(self._figure)
@@ -25,7 +25,7 @@ class MathTextLabel(QtWidgets.QWidget):
             y=1.0,
             horizontalalignment='left',
             verticalalignment='top',
-            size=QtWidgets.qApp.font().pointSize() * 2)
+            size=10)  # set font size
         self._canvas.draw()
 
         (x0, y0), (x1, y1) = text.get_window_extent().get_points()
@@ -34,6 +34,24 @@ class MathTextLabel(QtWidgets.QWidget):
 
         self._figure.set_size_inches(w / 80, h / 80)
         self.setFixedSize(w, h)
+
+    def updateText(self, mathText):
+        text = self._figure.suptitle(
+            mathText,
+            x=0.0,
+            y=1.0,
+            horizontalalignment='left',
+            verticalalignment='top',
+            size=10)  # set font size
+        self._canvas.draw()
+
+        (x0, y0), (x1, y1) = text.get_window_extent().get_points()
+        w = x1 - x0
+        h = y1 - y0
+
+        self._figure.set_size_inches(w / 80, h / 80)
+        self.setFixedSize(w, h)
+
 
 
 if __name__ == '__main__':

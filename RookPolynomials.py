@@ -56,6 +56,17 @@ class Polynomial:
             poly.pop()
         return len(poly) - 1
 
+    def latexFormat(self):
+        """
+        :return: LaTex formatted polynomial string
+        """
+        prnt_str = "$"
+        terms = []
+        for deg, coef in enumerate(self.coefs):
+            terms.append(str(coef) + "x^{" + str(deg) + '}')
+        prnt_str += '+'.join(terms) + '$'
+        return prnt_str
+
 
 class Board:
     POLYNOMIAL_CACHE = {}
@@ -171,7 +182,7 @@ class Board:
         cnt = self.__number_of_set_bits(n)
         return (cnt - 1) == (x_1 - x_2)
 
-    def find_rook_polynomial(self):
+    def solve(self):
         is_rect, x, y = self.__find_rect()
         if self.__is_empty():
             return Polynomial([1])
@@ -185,7 +196,7 @@ class Board:
             return self.POLYNOMIAL_CACHE[self.__rows_to_ints()]
         else:
             B_i, B_e = self.__build_B_i_and_B_e()
-            R_of_B = B_e.find_rook_polynomial() + (B_i.find_rook_polynomial() * Polynomial([0, 1]))
+            R_of_B = B_e.solve() + (B_i.solve() * Polynomial([0, 1]))
         self.POLYNOMIAL_CACHE[self.__rows_to_ints()] = R_of_B
         return R_of_B
 
@@ -210,7 +221,7 @@ def main():
     print("\nboard:")
     print(brd)
     start = time.time()
-    print("rook polynomial: ", brd.find_rook_polynomial())
+    print("rook polynomial: ", brd.solve())
     print("run time: ", round(time.time() - start, 3), "seconds")
 
 if __name__ == "__main__":
