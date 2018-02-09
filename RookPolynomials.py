@@ -4,8 +4,8 @@ import time
 
 
 class Polynomial:
-    def __init__(self, c):
-        self.coefs = c
+    def __init__(self, coefs):
+        self.coefs = coefs
 
     def __repr__(self):
         prnt_str = ""
@@ -21,10 +21,10 @@ class Polynomial:
         return prnt_str
 
     def __add__(self, other):
-        poly = copy.deepcopy(self)
+        poly = Polynomial([])
         for i in range(len(other.coefs)):
             if i < len(self.coefs):
-                poly.coefs[i] += other.coefs[i]
+                poly.coefs.append(self.coefs[i] + other.coefs[i])
             else:
                 poly.coefs.append(other.coefs[i])
         return poly
@@ -35,7 +35,7 @@ class Polynomial:
             if i < len(self.coefs):
                 poly.coefs.append(self.coefs[i] - other.coefs[i])
             else:
-                poly.coefs.append(0-other.coefs[i])
+                poly.coefs.append(0 - other.coefs[i])
         return poly
 
     def __mul__(self, other):
@@ -70,44 +70,39 @@ class Polynomial:
 
 class Board:
     POLYNOMIAL_CACHE = {}
-
+    
     def __init__(self, h, w, bad_sqrs):
         self.height = h
         self.width = w
-        self.board = {}
+        self.board = [(2**w-1) for i in range(h)]
+        # Represent binary array as array of ints
         for i in range(h):
-            self.board[i] = {}
             for j in range(w):
                 if (i, j) in bad_sqrs:
-                    self.board[i][j] = 0
-                else:
-                    self.board[i][j] = 1
+                    self.board[i] ^= 1 << w - (j + 1)
 
     def __repr__(self):
-        prnt_str = ""
-        for row in self.board.values():
-            for sqr in row.values():
-                prnt_str += str(sqr) + " "
-            prnt_str += "\n"
-        return prnt_str
+        rows = []
+        for row in self.board:
+            sqrs = []
+            for i in range(self.width):
+                sqr = str(row & 1)
+                row >>= 1
+                sqrs.append(sqr)
+            rows.append(" ".join(sqrs[::-1]))
+        return "\n".join(rows)
 
     def __is_single_cell(self):
-        rows = self.__rows_to_ints()
-        if rows.count(1) == 1 and set(rows) == {0, 1}:
+        rows = set(self.board)
+        if len(rows) == 2 and 0 in rows:  # should be zero and a power of two
+            for val in rows:
+                if val != (val & -val):
+                    return False
             return True
         return False
 
-    def __rows_to_ints(self):
-        rows = []
-        for row in self.board.values():
-            rows.append(int("".join(str(x) for x in row.values()), 2))
-        return tuple(rows)
-
-    def __str_rep(self):
-        return "".join(str(x) for x in self.__rows_to_ints())
-
     def __find_rect(self):
-        rows = self.__rows_to_ints()
+        rows = self.board
         row_vals = set(rows) - {0}
         if len(row_vals) == 1:
             val = next(iter(row_vals))
@@ -121,8 +116,8 @@ class Board:
         return False, None, None
 
     def __is_empty(self):
-        rows = self.__rows_to_ints()
-        if rows.count(0) == len(rows):
+        rows = set(self.board)
+        if rows == {0}:
             return True
         return False
 
@@ -131,21 +126,18 @@ class Board:
         B_i.board = copy.deepcopy(self.board)
         B_e = Board(self.height, self.width, {})
         B_e.board = copy.deepcopy(self.board)
-        for i in range(len(B_i.board)):
-            for j in range(len(B_i.board)):
-                if B_i.board[i][j]:
-                    for row in range(len(B_i.board)):
-                        if i == row:
-                            for val in B_i.board[row]:
-                                B_i.board[row][val] = 0
-                        B_i.board[row][j] = 0
-                    B_e.board[i][j] = 0
-                    return B_i, B_e
+        for i in range(B_i.height):
+            if B_i.board[i]:
+                msb = B_i.__find_msb(B_i.board[i])
+                B_e.board[i] &= ~(1 << (msb - 1))  # Delete cell
+                B_i.board[i] = 0  # Delete the row
+                for j in range(i, B_i.height):
+                    B_i.board[j] &= ~(1 << (msb - 1))  # Delete the column
+                return B_i, B_e
 
     def __binomial(self, n, k):
         if n > 0:
-            return int(
-                math.factorial(n) / (math.factorial(k) * math.factorial(n - k)))
+            return int(math.factorial(n) / (math.factorial(k) * math.factorial(n - k)))
         elif n == 0:
             return 0
         elif n < 0:
@@ -154,8 +146,7 @@ class Board:
     def __rect_frp(self, x, y):
         poly = Polynomial([])
         for k in range(min(x,y) + 1):
-            poly.coefs.append(self.__binomial(x, k) * self.__binomial(y, k)
-                              * math.factorial(k))
+            poly.coefs.append(self.__binomial(x, k) * self.__binomial(y, k) * math.factorial(k))
         return poly
 
     def __number_of_set_bits(self, n):
@@ -169,9 +160,21 @@ class Board:
         return c
 
     def __find_msb(self, n):
+        """
+        Taken from:
+        https://graphics.stanford.edu/~seander/bithacks.html#CountBitsSet64
+        """
         if n == 0:
             return 0
-        return math.floor(math.log(n, 10)/math.log(2, 10)) + 1
+
+        b = [0x2, 0xC, 0xF0, 0xFF00, 0xFFFF0000]
+        S = [1, 2, 4, 8, 16]
+        r = 0
+        for i in range(4, -1, -1):
+            if n & b[i]:
+                n >>= S[i]
+                r |= S[i]
+        return r + 1
 
     def __find_lsb(self, n):
         return self.__find_msb(n & ~(n-1))
@@ -184,22 +187,21 @@ class Board:
 
     def solve(self):
         is_rect, x, y = self.__find_rect()
-        if self.__is_empty():
+        if tuple(self.board) in self.POLYNOMIAL_CACHE:
+            return self.POLYNOMIAL_CACHE[tuple(self.board)]
+        elif self.__is_empty():
             return Polynomial([1])
         elif self.__is_single_cell():
             return Polynomial([1, 1])
         elif is_rect:
             R_of_B = self.__rect_frp(x,y)
-            self.POLYNOMIAL_CACHE[self.__rows_to_ints()] = R_of_B
+            self.POLYNOMIAL_CACHE[tuple(self.board)] = R_of_B
             return R_of_B
-        elif self.__rows_to_ints() in self.POLYNOMIAL_CACHE:
-            return self.POLYNOMIAL_CACHE[self.__rows_to_ints()]
         else:
             B_i, B_e = self.__build_B_i_and_B_e()
             R_of_B = B_e.solve() + (B_i.solve() * Polynomial([0, 1]))
-        self.POLYNOMIAL_CACHE[self.__rows_to_ints()] = R_of_B
+        self.POLYNOMIAL_CACHE[tuple(self.board)] = R_of_B
         return R_of_B
-
 
 def main():
     hw = input(
@@ -223,6 +225,9 @@ def main():
     start = time.time()
     print("rook polynomial: ", brd.solve())
     print("run time: ", round(time.time() - start, 3), "seconds")
+    # board = Board(3, 3, {(0,0), (1,1)})
+    # print(board)
+    # print(board.solve())
 
 if __name__ == "__main__":
     main()

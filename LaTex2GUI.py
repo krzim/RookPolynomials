@@ -11,7 +11,6 @@ class MathTextLabel(QtWidgets.QWidget):
         l = QtWidgets.QVBoxLayout(self)
         l.setContentsMargins(0, 0, 0, 0)
 
-
         r, g, b, a = self.palette().window().color().getRgbF()
 
         self._figure = Figure(edgecolor=(r, g, b), facecolor=(r, g, b))
@@ -53,7 +52,6 @@ class MathTextLabel(QtWidgets.QWidget):
         self.setFixedSize(w, h)
 
 
-
 if __name__ == '__main__':
     from sys import argv, exit
 
@@ -69,37 +67,8 @@ if __name__ == '__main__':
             l.addWidget(MathTextLabel(mathText, self),
                         alignment=QtCore.Qt.AlignHCenter)
 
-
     a = QtWidgets.QApplication(argv)
     w = Widget()
     w.show()
     w.raise_()
     exit(a.exec_())
-
-    """
-    another solution??
-    
-    from matplotlib.figure import Figure
-    from matplotlib.backends.backend_qt5agg import FigureCanvasQTAgg
-
-    # Get window background color
-    bg = self.palette().window().color()
-    cl = (bg.redF(), bg.greenF(), bg.blueF())
-
-    # Create figure, using window bg color
-    self.fig = Figure(edgecolor=cl, facecolor=cl)
-
-    # Add FigureCanvasQTAgg widget to form
-    self.canvas = FigureCanvasQTAgg(self.fig)        
-    self.tex_label_placeholder.layout().addWidget(self.canvas)
-
-    # Clear figure
-    self.fig.clear()
-
-    # Set figure title
-    self.fig.suptitle('$TeX$',
-                      x=0.0, y=0.5, 
-                      horizontalalignment='left',
-                      verticalalignment='center')
-    self.canvas.draw()
-    """
