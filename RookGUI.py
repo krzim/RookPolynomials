@@ -193,7 +193,6 @@ class Board(qw.QGraphicsView):
                 self.scene.addItem(square)
 
     def solve(self):
-        print("solved!")
         rpBoard = rp.Board(self.y, self.x, self.badCells)
         latex = rpBoard.solve().latexFormat()
         self.polyLabel.updateText(latex)

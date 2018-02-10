@@ -70,7 +70,7 @@ class Polynomial:
 
 class Board:
     POLYNOMIAL_CACHE = {}
-    
+
     def __init__(self, h, w, bad_sqrs):
         self.height = h
         self.width = w
@@ -96,6 +96,8 @@ class Board:
         rows = set(self.board)
         if len(rows) == 2 and 0 in rows:  # should be zero and a power of two
             for val in rows:
+                if val and self.board.count(val) > 1:
+                    return False
                 if val != (val & -val):
                     return False
             return True
@@ -225,7 +227,7 @@ def main():
     start = time.time()
     print("rook polynomial: ", brd.solve())
     print("run time: ", round(time.time() - start, 3), "seconds")
-    # board = Board(3, 3, {(0,0), (1,1)})
+    # board = Board(10, 1, {(5,0)})
     # print(board)
     # print(board.solve())
 
