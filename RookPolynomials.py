@@ -231,7 +231,7 @@ class Board:
             tmp_cords = copy.deepcopy(cords)
             rooks = set()
             cnt += 1
-            while len(tmp_cords) > 0 and cnt < num_rooks:
+            while len(tmp_cords) > 0 and num < num_rooks:
                 chosen = random.sample(tmp_cords, 1)[0]
                 tmp_cords.remove(chosen)
                 rooks.add(chosen)
