@@ -13,7 +13,7 @@ class RPSolver(qw.QMainWindow):
         super().__init__()
         self.initUI()
         # Window Data
-        self.setFixedSize(1000, 550)
+        self.resize(600, 450)
         self.center()
         self.setWindowTitle("Rook Polynomial Solver")
         self.setWindowIcon(qg.QIcon("images/rook_icon.png"))
@@ -46,6 +46,8 @@ class RPSolver(qw.QMainWindow):
         solveBtn.clicked.connect(self.board.solve)
         resetBtn = qw.QPushButton("Reset", self)
         resetBtn.clicked.connect(self.reset)
+        dispConfigBtn = qw.QPushButton("Display", self)
+        dispConfigBtn.clicked.connect(self.board.dispPlacement)
 
 
         # Comboboxes
@@ -75,11 +77,12 @@ class RPSolver(qw.QMainWindow):
         grid.addWidget(self.xCombo, 2, 1)
         grid.addWidget(solveBtn, 4, 0)
         grid.addWidget(resetBtn, 3, 0)
+        grid.addWidget(dispConfigBtn, 5, 0)
         grid.addWidget(self.board, 1, 2, 9, 8)
-        grid.addWidget(self.board.polyLabel, 9, 0, 1, 9)
+        # Must be row 10 so that board doesn't intersect
+        grid.addWidget(self.board.polyLabel, 10, 0, 1, 8)
         grid.setAlignment(self.board.polyLabel, qc.Qt.AlignCenter)
         grid.setAlignment(self.board, qc.Qt.AlignTop | qc.Qt.AlignLeft)
-
 
         self.setCentralWidget(widget)
 
@@ -131,6 +134,9 @@ class RPSolver(qw.QMainWindow):
         elif e.key() == qc.Qt.Key_Return:
             self.board.solve()
 
+    def resizeEvent(self, event):
+        self.center()
+
     def comboActivated(self, val):
         sender = self.sender()
         if sender.label == "xCombo":
@@ -153,6 +159,7 @@ class Board(qw.QGraphicsView):
         self.badCells = set()
         self.polyLabel = l2g.MathTextLabel("Select bad cells and click Solve"
                                            + " or hit Enter")
+        self.polynomial = None
         sqrDim = 40
         color = self.palette().color(qg.QPalette.Background)
 
@@ -193,23 +200,54 @@ class Board(qw.QGraphicsView):
                 self.scene.addItem(square)
 
     def solve(self):
+        self.drawBoard()
         rpBoard = rp.Board(self.y, self.x, self.badCells)
-        latex = rpBoard.solve().latexFormat()
+        self.polynomial = rpBoard.solve()
+        latex = self.polynomial.latexFormat()
         self.polyLabel.updateText(latex)
         centralWidget = self.parent.centralWidget()
         centralWidget.update()
-        centralWidget.layout().setAlignment(self.polyLabel, qc.Qt.AlignCenter)
         print(latex)
 
-
-
+    def dispPlacement(self):
+        self.drawBoard()
+        if self.polynomial != None:
+            num_rooks = self.polynomial.degree()
+        else:
+            qw.QMessageBox.warning(self.parent, "Warning!", "You must solve the board first!",
+                                   qw.QMessageBox.Ok)
+            return
+        items = [str(i) for i in range(num_rooks + 1)]
+        num_rooks, ok = qw.QInputDialog.getItem(self.parent, "Display Rooks",
+                                                "Choose number of rooks to place:",
+                                                items, num_rooks, False)
+        if not ok:
+            return
+        rpBoard = rp.Board(self.y, self.x, self.badCells)
+        rooks = rpBoard.disp_random_config(int(num_rooks))
+        blk_rook_img = qg.QPixmap("images/black_rook.png")
+        wht_rook_img = qg.QPixmap("images/white_rook.png")
+        for rook in rooks:
+            if (rook[0] + rook[1]) % 2:
+                wht_rook = qw.QGraphicsPixmapItem(wht_rook_img)
+                wht_rook.setX(rook[1] * 40)
+                wht_rook.setY(rook[0] * 40)
+                self.scene.addItem(wht_rook)
+            else:
+                blk_rook = qw.QGraphicsPixmapItem(blk_rook_img)
+                blk_rook.setX(rook[1] * 40)
+                blk_rook.setY(rook[0] * 40)
+                self.scene.addItem(blk_rook)
 
 class Square(qw.QGraphicsItem):
-    def __init__(self, x, y, board):
+    def __init__(self, x, y, board, image=None):
         super(Square, self).__init__()
         self.parent = board
         self.pen = qg.QPen()
         self.pen.setColor(qg.QColor(0x000000))
+
+        # Holds rook image when placing rooks on board
+        self.image = qw.QGraphicsPixmapItem(image) if image is not None else None
 
         self.brush = qg.QBrush()
 

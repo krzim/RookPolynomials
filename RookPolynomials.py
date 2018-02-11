@@ -1,8 +1,9 @@
 import copy
 import math
 import time
+import random
 
-
+# TODO: Reimplement this class using collections.Counters and not lists
 class Polynomial:
     def __init__(self, coefs):
         self.coefs = coefs
@@ -22,11 +23,19 @@ class Polynomial:
 
     def __add__(self, other):
         poly = Polynomial([])
-        for i in range(len(other.coefs)):
-            if i < len(self.coefs):
-                poly.coefs.append(self.coefs[i] + other.coefs[i])
-            else:
-                poly.coefs.append(other.coefs[i])
+        if len(other.coefs) > len(self.coefs):
+            for i in range(len(other.coefs)):
+                if i < len(self.coefs):
+                    poly.coefs.append(self.coefs[i] + other.coefs[i])
+                else:
+                    poly.coefs.append(other.coefs[i])
+        else:
+            for i in range(len(self.coefs)):
+                if i < len(other.coefs):
+                    poly.coefs.append(self.coefs[i] + other.coefs[i])
+                else:
+                    poly.coefs.append(self.coefs[i])
+
         return poly
 
     def __sub__(self, other):
@@ -60,7 +69,7 @@ class Polynomial:
         """
         :return: LaTex formatted polynomial string
         """
-        prnt_str = "$"
+        prnt_str = r"$"
         terms = []
         for deg, coef in enumerate(self.coefs):
             terms.append(str(coef) + "x^{" + str(deg) + '}')
@@ -202,34 +211,70 @@ class Board:
         else:
             B_i, B_e = self.__build_B_i_and_B_e()
             R_of_B = B_e.solve() + (B_i.solve() * Polynomial([0, 1]))
-        self.POLYNOMIAL_CACHE[tuple(self.board)] = R_of_B
-        return R_of_B
+            self.POLYNOMIAL_CACHE[tuple(self.board)] = R_of_B
+            return R_of_B
+
+    def disp_random_config(self, num_rooks):
+        # Displays a random valid configuration of rooks
+        board = copy.deepcopy(self.board)
+        cords = set()
+        rooks = set()
+        cnt = 0
+        num = 0
+        for i in range(self.height):
+            for j in range(self.width):
+                if board[i] & (1 << (self.width - 1 - j)):
+                    cords.add((i, j))
+        # find a valid configuration using num_rooks
+        while num < num_rooks and cnt < 1000:
+            num = 0
+            tmp_cords = copy.deepcopy(cords)
+            rooks = set()
+            cnt += 1
+            while len(tmp_cords) > 0 and cnt < num_rooks:
+                chosen = random.sample(tmp_cords, 1)[0]
+                tmp_cords.remove(chosen)
+                rooks.add(chosen)
+                num += 1
+                board[chosen[0]] = 0  # Delete row in board
+                for i in range(self.height):
+                    if (i, chosen[1]) in tmp_cords:
+                        tmp_cords.remove((i, chosen[1]))
+                    for j in range(self.width):
+                        if (chosen[0], j) in tmp_cords:
+                            tmp_cords.remove((chosen[0], j))
+                        board[j] &= ~(1 << j)  # Delete the column
+        return rooks
 
 def main():
-    hw = input(
-        "Input height and width of board separated by a comma and hit enter: ")
-    h = int(hw[:hw.index(',')])
-    w = int(hw[hw.index(',') + 1:])
-    b = set(input("Input space separated tuples of forbidden squares and hit "
-                  "enter. Leave blank for full board. i.e 0,1 1,0 2,5...: "
-                  ).strip(" ").split(' '))
-    bad = set()
-    print(b)
-    if b != {''}:
-        for elem in b:
-            bad.add((int(elem[0]), int(elem[2])))
-    print("\nheight: ", h)
-    print("width: ", w)
-    print("forbidden squares: ", bad)
-    brd = Board(h, w, bad)
-    print("\nboard:")
-    print(brd)
-    start = time.time()
-    print("rook polynomial: ", brd.solve())
-    print("run time: ", round(time.time() - start, 3), "seconds")
-    # board = Board(10, 1, {(5,0)})
+    # hw = input(
+    #     "Input height and width of board separated by a comma and hit enter: ")
+    # h = int(hw[:hw.index(',')])
+    # w = int(hw[hw.index(',') + 1:])
+    # b = set(input("Input space separated tuples of forbidden squares and hit "
+    #               "enter. Leave blank for full board. i.e 0,1 1,0 2,5...: "
+    #               ).strip(" ").split(' '))
+    # bad = set()
+    # print(b)
+    # if b != {''}:
+    #     for elem in b:
+    #         bad.add((int(elem[0]), int(elem[2])))
+    # print("\nheight: ", h)
+    # print("width: ", w)
+    # print("forbidden squares: ", bad)
+    # brd = Board(h, w, bad)
+    # print("\nboard:")
+    # print(brd)
+    # start = time.time()
+    # print("rook polynomial: ", brd.solve())
+    # print("run time: ", round(time.time() - start, 3), "seconds")
+    # board = Board(4, 4, {(3,3), (2,2), (1,1), (0,0)})
     # print(board)
     # print(board.solve())
+    # board.disp_random_config(4)
+    p1 = Polynomial([1, 1, 1])
+    p2 = Polynomial([1, 1])
+    print(p1 + p2)
 
 if __name__ == "__main__":
     main()
