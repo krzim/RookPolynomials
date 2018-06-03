@@ -226,7 +226,7 @@ class Board:
                 if board[i] & (1 << (self.width - 1 - j)):
                     cords.add((i, j))
         # find a valid configuration using num_rooks
-        while num < num_rooks and cnt < 1000:
+        while num < num_rooks:
             num = 0
             tmp_cords = copy.deepcopy(cords)
             rooks = set()
@@ -243,7 +243,7 @@ class Board:
                     for j in range(self.width):
                         if (chosen[0], j) in tmp_cords:
                             tmp_cords.remove((chosen[0], j))
-                        board[j] &= ~(1 << j)  # Delete the column
+                        board[i] &= ~(1 << j)  # Delete the column
         return rooks
 
 def main():
